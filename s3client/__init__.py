@@ -30,7 +30,7 @@ _s3client = S3Client()
 
 
 def set_new_client(**kwargs):
-    global _client
+    global _s3client
     _s3client = S3Client(**kwargs)
 
     
