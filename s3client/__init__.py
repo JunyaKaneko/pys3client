@@ -14,7 +14,11 @@ _session = None
 _s3 = None
 _bucket = None
 
-_conf = toml.load(os.path.join(str(Path.home()), '.s3client'))
+
+if os.path.exist('.s3client'):
+    _conf = toml.load('.s3client')
+else:
+    _conf = toml.load(os.path.join(str(Path.home()), '.s3client'))
 
 
 def init(**kwargs):
@@ -22,6 +26,9 @@ def init(**kwargs):
     _session = boto3.session.Session(**kwargs)
     _s3 = session.resource('s3')
     _bucket = _s3.Bucket(_conf['bucket'])
+
+
+init()
     
 
 def getcwd():
