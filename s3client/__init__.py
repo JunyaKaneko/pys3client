@@ -38,3 +38,35 @@ def chbucket(bucket_name):
     global _conf, _bucket
     _conf['bucket'] = bucket_name
     _bucket = _s3.Bucket(_conf['bucket'])
+
+
+def listdir(path):
+    pass
+
+
+def mkdir(path):
+    pass
+
+
+def remove(path):
+    pass
+
+
+def removedirs(path):
+    pass
+
+
+def rename(path):
+    pass
+
+
+def renames(path):
+    pass
+
+
+def replace(path):
+    pass
+
+
+def rmdir(path):
+    pass
