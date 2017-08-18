@@ -29,7 +29,7 @@ def getcwd():
 
 
 def chdir(path):
-    global _cwd
+    global __cwd
     __cwd = s3path.abspath(path).split('/')
     __cwd.remove('')
 
