@@ -8,7 +8,7 @@ from s3client import path as s3path
 __author__ = 'Junya Kaneko <jyuneko@hotmail.com>'
 
 
-_cwd = []
+__cwd = []
 
 _session = None
 _s3 = None
@@ -30,8 +30,8 @@ def getcwd():
 
 def chdir(path):
     global _cwd
-    _cwd = s3path.abspath(path).split('/')
-    _cwd.remove('')
+    __cwd = s3path.abspath(path).split('/')
+    __cwd.remove('')
 
     
 def chbucket(bucket_name):
