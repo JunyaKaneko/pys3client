@@ -25,7 +25,7 @@ def init(**kwargs):
     
 
 def getcwd():
-    return os.path.join('/', '/'.join(_cwd))
+    return os.path.join('/', '/'.join(__cwd))
 
 
 def chdir(path):
