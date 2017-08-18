@@ -65,28 +65,28 @@ def listdir(path='.'):
     return tuple(object_names)
 
 def mkdir(path):
-    pass
+    raise NotImplementedError
 
 
 def remove(path):
-    pass
+    raise NotImplementedError
 
 
 def removedirs(path):
-    pass
+    raise NotImplementedError
 
 
 def rename(path):
-    pass
+    raise NotImplementedError
 
 
 def renames(path):
-    pass
+    raise NotImplementedError
 
 
 def replace(path):
-    pass
+    raise NotImplementedError
 
 
 def rmdir(path):
-    pass
+    raise NotImplementedError
