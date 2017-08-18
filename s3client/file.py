@@ -3,7 +3,7 @@ import random
 import string
 import datetime
 import pytz
-from contextlib import contextmanager
+import botocore
 import s3client
 
 
@@ -20,7 +20,6 @@ def _split_name(name):
 
 def _generate_versioned_name(basename, version=None, length=48):
     name, extension = _split_name(basename)
-    print(name, version, extension)
     if version is None:
         version = ''.join([random.choice(string.ascii_uppercase + string.digits) for _ in range(48)])
     return name + '_' + version + '.' + extension
@@ -48,27 +47,32 @@ class S3File:
         return os.path.join(self.cache_dir, self.cache_name)
 
     def update_cache(self):
-        s3obj = s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:])
-        s3obj.load()
-
         cache_path = ''
-        if self.cache_name is not None:
-            print(s3obj.last_modified, datetime.datetime.fromtimestamp(os.stat(self.cache_path).st_mtime))
-            if s3obj.last_modified < datetime.datetime.fromtimestamp(
-                    os.stat(self.cache_path).st_mtime).replace(tzinfo=pytz.UTC):
-                return
+        try:
+            s3obj = s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:])
+            s3obj.load()
+
+            if self.cache_name is not None:
+                if s3obj.last_modified < datetime.datetime.fromtimestamp(
+                        os.stat(self.cache_path).st_mtime).replace(tzinfo=pytz.UTC):
+                    return
+                else:
+                    cache_path = self._cache_path
+                    self.remove_cache()
             else:
-                cache_path = self._cache_path
-                self.remove_cache()
-        else:
-            cache_path = _generate_path(self.cache_dir,
-                                        s3client.path.basename(s3obj.key), version=s3obj.version_id)    
+                cache_path = _generate_path(self.cache_dir, s3client.path.basename(s3obj.key),
+                                            version=s3obj.version_id)    
+            s3obj.download_file(cache_path)
+        except botocore.exceptions.ClientError as e:
+            cache_path = _generate_path(self.cache_dir, s3client.path.basename(s3obj.key))
         self.cache_name = os.path.basename(cache_path)
-        s3obj.download_file(cache_path)
 
     def remove_cache(self):
         os.remove(self.cache_path)
         self.cache_name = None
+
+    def update_remote(self):
+        s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:]).upload_file(self.cache_path)
         
     def open(self, mode='r', buffering=-1,
              encoding=None, errors=None, newline=None, closefd=True, opener=None):
@@ -76,28 +80,25 @@ class S3File:
         self.fd = open(self.cache_path, mode, buffering, encoding, errors, newline, closefd, opener)
         return self
 
-    def close(self, remove_cache=False):
+    def close(self, remove_cache=False, update_remote=True):
         self.fd.close()
         if remove_cache:
-            self.remove_cahce()
+            self.remove_cache()
+        if update_remote and (self.fd.mode.find('w') != -1 or self.fd.mode.find('+')):
+            '''TODO: Prevent Unnecessary upload'''
+            self.update_remote()
             
     def __getattr__(self, name):
         try:
-            return self.fd.name
+            print(name)
+            return getattr(self.fd, name)
         except AttributeError:
             raise AttributeError('S3File does not have attribute %s' % name)
 
     def __enter__(self):
         return self.fd
 
-
     def __exit__(self, exc_type, exc_value, traceback):
         self.fd.close()
-                 
 
-@contextmanager
-def s3open(s3file, mode='r', buffering=-1, encoding=None,
-                errors=None, newline=None, closefd=True, opener=None, remove_cache=False):
-    yield s3file.open(mode, buffering, encoding, errors, newline, closefd, opener).fd
-    s3file.close(remove_cache)
         

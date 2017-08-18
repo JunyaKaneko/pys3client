@@ -19,7 +19,7 @@ def exists(path):
     
     if path == '/':
         try:
-            _s3.meta.client.head_bucket(Bucket=_conf['bucket'])
+            s3client._s3.meta.client.head_bucket(Bucket=_conf['bucket'])
         except botocore.exceptions.ClientError as e:
             error_code = int(e.response['Error']['Code'])
             if error_code == 404:
