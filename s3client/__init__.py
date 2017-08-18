@@ -15,7 +15,7 @@ _s3 = None
 _bucket = None
 
 
-if os.path.exist('.s3client'):
+if os.path.exists('.s3client'):
     _conf = toml.load('.s3client')
 else:
     _conf = toml.load(os.path.join(str(Path.home()), '.s3client'))
@@ -24,7 +24,7 @@ else:
 def init(**kwargs):
     global _session, _s3, _bucket
     _session = boto3.session.Session(**kwargs)
-    _s3 = session.resource('s3')
+    _s3 = _session.resource('s3')
     _bucket = _s3.Bucket(_conf['bucket'])
 
 
@@ -45,11 +45,24 @@ def chbucket(bucket_name):
     global _conf, _bucket
     _conf['bucket'] = bucket_name
     _bucket = _s3.Bucket(_conf['bucket'])
+    chdir('/')
 
 
-def listdir(path):
-    pass
+def listdir(path='.'):
+    path = s3path.abspath(path)
+    if path == '/':
+        path = ''
+        prefix = ''
+        objects = _bucket.objects.all()
+    else:
+        path = path[1:]
+        prefix = path + '/'
+        objects = _bucket.objects.filter(Delimiter='/', Prefix=prefix)
 
+    object_names = set([obj.key.replace(prefix, '').split('/')[0] for obj in objects])
+    if '' in object_names:
+        object_names.remove('')
+    return tuple(object_names)
 
 def mkdir(path):
     pass
