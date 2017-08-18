@@ -23,12 +23,9 @@ def exists(path):
     return True
 
 
+def basename(path):
+    return os.path.basename(path)
+
+
 def dirname(path):
-    from_root = False
-    if path[0] == '/':
-        from_root = True
-        path = path[1:]
-    path = '/'.join(path.split[:-1])
-    if from_root:
-        path = '/' + path
-    return os.path.normpath(path)
+    return os.path.dirname(path)
