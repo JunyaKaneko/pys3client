@@ -11,6 +11,7 @@ __author__ = 'Junya Kaneko <jyuneko@hotmail.com>'
 __cwd = []
 
 _session = None
+_client = None
 _s3 = None
 _bucket = None
 
@@ -22,9 +23,10 @@ else:
 
 
 def init(**kwargs):
-    global _session, _s3, _bucket
+    global _session, _client, _s3, _bucket
     _session = boto3.session.Session(**kwargs)
-    _s3 = _session.resource('s3')
+    _client = _session.client('s3')
+    _s3 = _session.resource('s3')    
     _bucket = _s3.Bucket(_conf['bucket'])
 
 
@@ -64,6 +66,7 @@ def listdir(path='.'):
         object_names.remove('')
     return tuple(object_names)
 
+
 def mkdir(path):
     raise NotImplementedError
 
@@ -90,3 +93,6 @@ def replace(path):
 
 def rmdir(path):
     raise NotImplementedError
+
+
+from s3client import file
