@@ -6,12 +6,29 @@ import s3client
 __author__ = 'Junya Kaneko <jyuneko@hotmail.com>'
 
 
-def abspath(path):
-    return os.path.normpath(os.path.join(s3client.getcwd(), path))
+def abspath(path, root_delimiter=True):
+    path = os.path.normpath(os.path.join(s3client.getcwd(), path))
+    if root_delimiter:
+        return path
+    else:
+        return path[1:]
 
 
 def exists(path):
-    path = abspath(path)[1:]
+    path = abspath(path)
+    
+    if path == '/':
+        try:
+            _s3.meta.client.head_bucket(Bucket=_conf['bucket'])
+        except botocore.exceptions.ClientError as e:
+            error_code = int(e.response['Error']['Code'])
+            if error_code == 404:
+                return False
+            else:
+                True
+    
+    path = path[1:]
+    
     try:
         s3client._s3.Object(s3client._conf['bucket'], path).load()
     except botocore.exceptions.ClientError as e:
