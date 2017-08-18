@@ -1,6 +1,6 @@
 # pys3client
 
-Handling s3 folders and files as if those are local file by using os and os.path like functions.
+Handling s3 folders and files as if those are local folders and files by using os and os.path like functions.
 
 # Attentoin
 
