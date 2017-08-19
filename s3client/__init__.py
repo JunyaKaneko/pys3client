@@ -59,9 +59,11 @@ def listdir(path='.'):
     else:
         path = path[1:]
         prefix = path + '/'
-        objects = _bucket.objects.filter(Delimiter='/', Prefix=prefix)
+        objects = _bucket.objects.filter(Prefix=prefix)
+        if not sum(1 for _ in objects):
+            raise FileNotFoundError('/' + path)
 
-    object_names = set([obj.key.replace(prefix, '').split('/')[0] for obj in objects])
+    object_names = set([obj.key.replace(prefix, '', 1).split('/')[0] for obj in objects])
     if '' in object_names:
         object_names.remove('')
     return tuple(object_names)
@@ -69,7 +71,7 @@ def listdir(path='.'):
 
 def mkdir(path):
     path = s3path.abspath(path)
-    _bucket.put_object(Key=path[1:])
+    _bucket.put_object(Key=path[1:] + '/')
 
 
 def remove(path):
@@ -80,14 +82,15 @@ def remove(path):
 def rename(src, dist):
     src = s3path.abspath(src)
     dist = s3path.abspath(dist)
-    _s3.Object(_conf['bucket'], dist[1:]).copy_from(CopySource=os.path.join(_conf['bucket'], src[1:]))
+    _s3.Object(_conf['bucket'], dist[1:]).copy_from(
+        CopySource=os.path.join(_conf['bucket'], src[1:]))
     _s3.Object(_conf['bucket'], src[1:]).delete()
 
 
 def rmdir(path):
     global _bucket
     path = s3path.abspath(path)
-    _bucket.delete_objects(Delete={'Objects': [{'Key': path[1:]}]}
+    _bucket.delete_objects(Delete={'Objects': [{'Key': path[1:] + '/'}]})
 
                            
 from s3client import file
