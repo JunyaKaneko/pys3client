@@ -32,7 +32,7 @@ def exists(path):
     try:
         s3client._s3.Object(s3client._conf['bucket'], path).load()
     except botocore.exceptions.ClientError as e:
-        keys = s3client._bucket.objects.filter(Delimiter='/', MaxKeys=1, Prefix=path + '/')
+        keys = s3client._bucket.objects.filter(MaxKeys=1, Prefix=path + '/')
         if sum(1 for _ in keys):
             return True
         else:
