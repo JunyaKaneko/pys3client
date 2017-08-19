@@ -68,31 +68,26 @@ def listdir(path='.'):
 
 
 def mkdir(path):
-    raise NotImplementedError
+    path = s3path.abspath(path)
+    _bucket.put_object(Key=path[1:])
 
 
 def remove(path):
-    raise NotImplementedError
+    path = s3path.abspath(path)
+    _bucket.delete_objects(Delete={'Objects': [{'Key': path[1:]}]})
 
 
-def removedirs(path):
-    raise NotImplementedError
-
-
-def rename(path):
-    raise NotImplementedError
-
-
-def renames(path):
-    raise NotImplementedError
-
-
-def replace(path):
-    raise NotImplementedError
+def rename(src, dist):
+    src = s3path.abspath(src)
+    dist = s3path.abspath(dist)
+    _s3.Object(_conf['bucket'], dist[1:]).copy_from(CopySource=os.path.join(_conf['bucket'], src[1:]))
+    _s3.Object(_conf['bucket'], src[1:]).delete()
 
 
 def rmdir(path):
-    raise NotImplementedError
+    global _bucket
+    path = s3path.abspath(path)
+    _bucket.delete_objects(Delete={'Objects': [{'Key': path[1:]}]}
 
-
+                           
 from s3client import file
