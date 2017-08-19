@@ -96,9 +96,11 @@ class S3File:
             raise AttributeError('S3File does not have attribute %s' % name)
 
     def __enter__(self):
-        return self.fd
+        return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.fd.close()
+
+    def __exit__(self, *args):
+        self.close()
+
 
         
