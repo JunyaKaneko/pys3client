@@ -103,37 +103,44 @@ def remove(path):
     if s3path.isfile(path):
         _bucket.delete_objects(Delete={'Objects': [{'Key': path[1:]}]})
     else:
-        raise S3ClientError
+        raise S3ClientError(path)
 
     
 def rename(src, dist):
     src = s3path.abspath(src)
     dist = s3path.abspath(dist)
     if s3path.exists(dist):
-        if s3path.isdir(dist) or (s3path.isdir(src) and s3path.isfile(dist)):
+        if s3path.isdir(dist) or (s3path.isfile(src) and s3path.isfile(dist)):
             raise S3ClientError
     if s3path.isdir(src):
         src = src + '/'
+        if not s3path.exists(s3path.dirname(dist)):
+            raise FileNotFoundError(s3path.dirname(dist))
         dist = dist + '/'
-    _s3.Object(_conf['bucket'], dist[1:]).copy_from(
-        CopySource={'Bucket': _conf['bucket'], 'Key': src[1:]})
-    _s3.Object(_conf['bucket'], src[1:]).delete()
+    objects = _bucket.objects.filter(Prefix=src[1:])
+    print([obj.key for obj in objects])
+    for obj in objects:
+        new_key = obj.key.replace(src[1:], dist[1:], 1)
+        _s3.Object(_conf['bucket'], new_key)\
+           .copy_from(CopySource={'Bucket': _conf['bucket'], 'Key': obj.key})
+        _s3.Object(_conf['bucket'], obj.key).delete()
 
-
+    
 def rmdir(path):
     global _bucket
     path = s3path.abspath(path)
     if s3path.isdir(path) and not listdir(path):
         _bucket.delete_objects(Delete={'Objects': [{'Key': path[1:] + '/'}]})
     else:
-        raise S3ClientError
+        raise S3ClientError(path)
 
 
 def removedirs(path):
     def recursive_rmdir(path):
         for dir_name in listdir(path):
             dir_path =s3path.join(path, dir_name)
-            recursive_rmdir(dir_path)
+            if s3path.isdir(dir_path):
+                recursive_rmdir(dir_path)
         rmdir(path)
 
     path = s3path.abspath(path)
