@@ -72,7 +72,10 @@ class S3File:
         self.cache_name = None
 
     def update_remote(self):
-        s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:]).upload_file(self.cache_path)
+        if s3client.isdir(s3client.dirname(self.s3path)):
+            s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:]).upload_file(self.cache_path)
+        else:
+            raise FileNotFoundError
         
     def open(self, mode='r', buffering=-1,
              encoding=None, errors=None, newline=None, closefd=True, opener=None):
