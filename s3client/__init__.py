@@ -22,6 +22,10 @@ else:
     _conf = toml.load(os.path.join(str(Path.home()), '.s3client'))
 
 
+class DirectoryNotEmptyError(Exception):
+    pass
+    
+
 def init(**kwargs):
     global _session, _client, _s3, _bucket
     _session = boto3.session.Session(**kwargs)
@@ -71,8 +75,27 @@ def listdir(path='.'):
 
 def mkdir(path):
     path = s3path.abspath(path)
+    if s3path.exists(path) and s3path.isdir(path):
+        raise FileExistsError(path)
+    if not s3path.exists(s3path.dirname(path)):
+        raise FileNotFoundError(path)
     _bucket.put_object(Key=path[1:] + '/')
 
+
+def makedirs(path):
+    path = s3path.abspath(path)
+    if s3path.exists(path) and s3path.isdir(path):
+        raise FileExistsError
+    dirs = [path, ]
+    dirname = path
+    while True:
+        dirname = s3path.dirname(dirname)
+        if (s3path.exists(dirname) and s3path.isdir(dirname)) or dirname == '/':
+            break
+        else:
+            dirs.insert(0, dirname)
+    for d in dirs:
+        mkdir(d)
 
 def remove(path):
     path = s3path.abspath(path)
@@ -90,7 +113,21 @@ def rename(src, dist):
 def rmdir(path):
     global _bucket
     path = s3path.abspath(path)
-    _bucket.delete_objects(Delete={'Objects': [{'Key': path[1:] + '/'}]})
+    if s3path.isdir(path) and not listdir(path):
+        _bucket.delete_objects(Delete={'Objects': [{'Key': path[1:] + '/'}]})
+    else:
+        raise DirectoryNotEmptyError
 
+
+def removedirs(path):
+    def recursive_rmdir(path):
+        for dir_name in listdir(path):
+            dir_path =s3path.join(path, dir_name)
+            recursive_rmdir(dir_path)
+        rmdir(path)
+
+    path = s3path.abspath(path)
+    recursive_rmdir(path)
+        
                            
 from s3client import file

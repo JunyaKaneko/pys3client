@@ -14,6 +14,10 @@ def abspath(path, root_delimiter=True):
         return path[1:]
 
 
+def join(path, *paths):
+    return os.path.join(path, *paths)
+
+
 def kind(path):
     path = abspath(path)
     
@@ -23,7 +27,7 @@ def kind(path):
         except botocore.exceptions.ClientError as e:
             error_code = int(e.response['Error']['Code'])
             if error_code == 404:
-                return FileNotFoundError
+                raise FileNotFoundError
         return 'dir'
     
     path = path[1:]
@@ -35,7 +39,7 @@ def kind(path):
         if sum(1 for _ in keys):
             return 'dir'
         else:
-            return FileNotFoundError
+            raise FileNotFoundError
     return 'file'
 
 
@@ -48,22 +52,16 @@ def exists(path):
 
 
 def isdir(path):
-    try:
-        if kind(path) == 'dir':
-            return True
-        else:
-            return False
-    except FileNotFoundError:
+    if kind(path) == 'dir':
+        return True
+    else:
         return False
-    
+
     
 def isfile(path):
-    try:
-        if kind(path) == 'file':
-            return True
-        else:
-            return False
-    except FileNotFoundError:
+    if kind(path) == 'file':
+        return True
+    else:
         return False
 
 
