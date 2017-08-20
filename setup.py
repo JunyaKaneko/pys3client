@@ -1,4 +1,5 @@
-from distutils.core import setup
+from setuptools import setup
+
 setup(
     name = 's3client',
     packages = ['s3client'],
@@ -9,5 +10,7 @@ setup(
     url = 'https://github.com/JunyaKaneko/pys3client',
     download_url = 'https://github.com/JunyaKaneko/pys3client.git',
     keywords = ['s3', ],
+    license='MIT',
+    install_requires = ['boto3', 'toml'],
     classifiers = [],
 )
