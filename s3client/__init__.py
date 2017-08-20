@@ -22,7 +22,7 @@ else:
     _conf = toml.load(os.path.join(str(Path.home()), '.s3client'))
 
 
-class DirectoryNotEmptyError(Exception):
+class S3ClientError(Exception):
     pass
     
 
@@ -97,16 +97,26 @@ def makedirs(path):
     for d in dirs:
         mkdir(d)
 
+        
 def remove(path):
     path = s3path.abspath(path)
-    _bucket.delete_objects(Delete={'Objects': [{'Key': path[1:]}]})
+    if s3path.isfile(path):
+        _bucket.delete_objects(Delete={'Objects': [{'Key': path[1:]}]})
+    else:
+        raise S3ClientError
 
-
+    
 def rename(src, dist):
     src = s3path.abspath(src)
     dist = s3path.abspath(dist)
+    if s3path.exists(dist):
+        if s3path.isdir(dist) or (s3path.isdir(src) and s3path.isfile(dist)):
+            raise S3ClientError
+    if s3path.isdir(src):
+        src = src + '/'
+        dist = dist + '/'
     _s3.Object(_conf['bucket'], dist[1:]).copy_from(
-        CopySource=os.path.join(_conf['bucket'], src[1:]))
+        CopySource={'Bucket': _conf['bucket'], 'Key': src[1:]})
     _s3.Object(_conf['bucket'], src[1:]).delete()
 
 
@@ -116,7 +126,7 @@ def rmdir(path):
     if s3path.isdir(path) and not listdir(path):
         _bucket.delete_objects(Delete={'Objects': [{'Key': path[1:] + '/'}]})
     else:
-        raise DirectoryNotEmptyError
+        raise S3ClientError
 
 
 def removedirs(path):
