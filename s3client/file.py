@@ -139,9 +139,6 @@ class S3File:
         self.close()
 
     def __del__(self):
-        if self.auto_remote_update and self.is_cache_up_to_date and \
-           s3client.path.exists(s3client.path.dirname(self.s3path)):
-            self.update_remote()
         if self.auto_remove_cache:
             self.remove_cache()
         
