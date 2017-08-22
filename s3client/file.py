@@ -36,12 +36,13 @@ def _generate_path(basedir, basename, versioned=True, version=None, length=48, r
 
 
 class S3File:
-    def __init__(self, s3path, cache_dir=s3client._conf['cache_dir'], cache_name=None, auto_remote_update=True):
+    def __init__(self, s3path, cache_dir=s3client._conf['cache_dir'], cache_name=None, auto_remote_update=True, auto_remove_cache=True):
         self.s3path = s3client.path.abspath(s3path)
         self.cache_dir = os.path.abspath(cache_dir)
         self.cache_name = cache_name
         self.fd = None
         self.auto_remote_update = auto_remote_update
+        self.auto_remove_cache = auto_remove_cache
 
     @property
     def cache_path(self):
@@ -114,10 +115,8 @@ class S3File:
         self.fd = open(self.cache_path, mode, buffering, encoding, errors, newline, closefd, opener)
         return self
 
-    def close(self, remove_cache=False, force_update_remote=True):
+    def close(self, force_update_remote=True):
         self.fd.close()
-        if remove_cache:
-            self.remove_cache()
         if self.auto_remote_update and self.is_cache_up_to_date and (self.fd.mode.find('w') != -1 or self.fd.mode.find('+')) or foce_update_remote:
             '''TODO: Prevent Unnecessary upload'''
             self.update_remote()
@@ -136,5 +135,8 @@ class S3File:
         self.close()
 
     def __del__(self):
-        self.remove_cache()
+        if self.auto_remote_update and self.is_cache_up_to_date:
+            self.update_remote()
+        if self.auto_remove_cache:
+            self.remove_cache()
         
