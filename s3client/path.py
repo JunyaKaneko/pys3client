@@ -39,7 +39,7 @@ def kind(path):
         if sum(1 for _ in keys):
             return 'dir'
         else:
-            raise FileNotFoundError
+            raise FileNotFoundError(path)
     return 'file'
 
 
