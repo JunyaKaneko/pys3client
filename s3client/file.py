@@ -96,7 +96,8 @@ class S3File:
             return False
         
     def update_cache(self):
-        s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:]).download_file(self.cache_path)
+        s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:])\
+                    .download_file(self.cache_path)
 
     def remove_cache(self):
         if os.path.exists(self.cache_path):
@@ -105,12 +106,13 @@ class S3File:
 
     def update_remote(self):
         if s3client.path.isdir(s3client.path.dirname(self.s3path)):
-            s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:]).upload_file(self.cache_path)
+            s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:])\
+                        .upload_file(self.cache_path)
         else:
             raise FileNotFoundError(s3client.path.dirname(self.s3path))
 
-    def open(self, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None,
-             force_update_cache=False):
+    def open(self, mode='r', buffering=-1, encoding=None, errors=None, \
+             newline=None, closefd=True, opener=None, force_update_cache=False):
         if self.is_remote_up_to_date or force_update_cache:
             self.update_cache()
         self.fd = open(self.cache_path, mode, buffering, encoding, errors, newline, closefd, opener)
@@ -118,8 +120,8 @@ class S3File:
 
     def close(self, force_update_remote=True):
         self.fd.close()
-        if self.auto_remote_update and self.is_cache_up_to_date and (self.fd.mode.find('w') != -1 or self.fd.mode.find('+'))\
-           or foce_update_remote:
+        if self.auto_remote_update and self.is_cache_up_to_date and \
+           (self.fd.mode.find('w') != -1 or self.fd.mode.find('+')) or foce_update_remote:
             '''TODO: Prevent Unnecessary upload'''
             self.update_remote()
             
@@ -137,7 +139,8 @@ class S3File:
         self.close()
 
     def __del__(self):
-        if self.auto_remote_update and self.is_cache_up_to_date:
+        if self.auto_remote_update and self.is_cache_up_to_date and \
+           s3client.path.exists(s3client.path.dirname(self.s3path)):
             self.update_remote()
         if self.auto_remove_cache:
             self.remove_cache()
