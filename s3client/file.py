@@ -98,7 +98,8 @@ class S3File:
         s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:]).download_file(self.cache_path)
 
     def remove_cache(self):
-        os.remove(self.cache_path)
+        if self.cache_path is not None and os.path.exists(self.cache_path):
+            os.remove(self.cache_path)
         self.cache_name = None
 
     def update_remote(self):
@@ -117,7 +118,7 @@ class S3File:
         self.fd.close()
         if remove_cache:
             self.remove_cache()
-        if self.auto_remote_update and self.is_cache_up_to_date and (self.fd.mode.find('w') != -1 or self.fd.mode.find('+')):
+        if self.auto_remote_update and self.is_cache_up_to_date and (self.fd.mode.find('w') != -1 or self.fd.mode.find('+')) or foce_update_remote:
             '''TODO: Prevent Unnecessary upload'''
             self.update_remote()
             
@@ -131,9 +132,9 @@ class S3File:
     def __enter__(self):
         return self
 
-
     def __exit__(self, *args):
         self.close()
 
-
+    def __del__(self):
+        self.remove_cache()
         
