@@ -36,36 +36,66 @@ def _generate_path(basedir, basename, versioned=True, version=None, length=48, r
 
 
 class S3File:
-    def __init__(self, s3path, cache_dir=s3client._conf['cache_dir'], cache_name=None):
+    def __init__(self, s3path, cache_dir=s3client._conf['cache_dir'], cache_name=None, auto_remote_update=True):
         self.s3path = s3client.path.abspath(s3path)
         self.cache_dir = os.path.abspath(cache_dir)
         self.cache_name = cache_name
         self.fd = None
+        self.auto_remote_update = auto_remote_update
 
     @property
     def cache_path(self):
-        return os.path.join(self.cache_dir, self.cache_name)
+        if self.cache_name is not None:
+            return os.path.join(self.cache_dir, self.cache_name)
+        else:
+            None
 
-    def update_cache(self):
-        cache_path = ''
-        try:
-            s3obj = s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:])
-            s3obj.load()
+    @cache_path.setter
+    def cache_path(self, path):
+        self.cache_dir = os.path.dirname(path)
+        self.cache_name = os.path.basename(path)
 
-            if self.cache_name is not None:
-                if s3obj.last_modified < datetime.datetime.fromtimestamp(
-                        os.stat(self.cache_path).st_mtime).replace(tzinfo=pytz.UTC):
-                    return
-                else:
-                    cache_path = self._cache_path
-                    self.remove_cache()
+    def get_newer(self):
+        remote_exists = s3client.path.exists(self.s3path)
+        if self.cache_path is not None:
+            cache_exists = os.path.exists(self.cache_path)
+        else:
+            cache_exists = False
+
+        if remote_exists:
+            if not cache_exists:
+                return 'remote'
             else:
-                cache_path = _generate_path(self.cache_dir, s3client.path.basename(s3obj.key),
-                                            version=s3obj.version_id)    
-            s3obj.download_file(cache_path)
-        except botocore.exceptions.ClientError as e:
-            cache_path = _generate_path(self.cache_dir, s3client.path.basename(s3obj.key))
-        self.cache_name = os.path.basename(cache_path)
+                s3obj = s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:])
+                s3obj.load()
+                if s3obj.last_modified < datetime.datetime.fromtimestamp(
+                    os.stat(self.cache_path).st_mtime).replace(tzinfo=pytz.UTC):
+                    return 'cache'
+                else:
+                    return 'remote'
+        elif cache_exists:
+            return 'cache'
+        else:
+            return None
+
+    @property
+    def is_cache_up_to_date(self):
+        if self.get_newer() == 'cache':
+            return True
+        else:
+            return False
+
+    @property
+    def is_remote_up_to_date(self):
+        if self.get_newer() == 'remote':
+            return True
+        else:
+            return False
+        
+    def update_cache(self):
+        if self.cache_path is not None:
+            self.cache_path = _generate_path(self.cache_dir, s3client.path.basename(s3obj.key)))
+        s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:]).download_file(self.cache_path)
 
     def remove_cache(self):
         os.remove(self.cache_path)
@@ -76,18 +106,18 @@ class S3File:
             s3client._s3.Object(s3client._conf['bucket'], self.s3path[1:]).upload_file(self.cache_path)
         else:
             raise FileNotFoundError(s3client.path.dirname(self.s3path))
-        
-    def open(self, mode='r', buffering=-1,
-             encoding=None, errors=None, newline=None, closefd=True, opener=None):
-        self.update_cache()
+
+    def open(self, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None, force_update_cache=False):
+        if is_remote_up_to_date or force_update_cache:
+            self.update_cache()
         self.fd = open(self.cache_path, mode, buffering, encoding, errors, newline, closefd, opener)
         return self
 
-    def close(self, remove_cache=False, update_remote=True):
+    def close(self, remove_cache=False, force_update_remote=True):
         self.fd.close()
         if remove_cache:
             self.remove_cache()
-        if update_remote and (self.fd.mode.find('w') != -1 or self.fd.mode.find('+')):
+        if self.auto_remote_update and self.is_cache_up_to_date and (self.fd.mode.find('w') != -1 or self.fd.mode.find('+')):
             '''TODO: Prevent Unnecessary upload'''
             self.update_remote()
             
