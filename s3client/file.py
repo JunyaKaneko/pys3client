@@ -127,7 +127,6 @@ class S3File:
             
     def __getattr__(self, name):
         try:
-            print(name)
             return getattr(self.fd, name)
         except AttributeError:
             raise AttributeError('S3File does not have attribute %s' % name)
